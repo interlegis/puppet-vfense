@@ -7,8 +7,12 @@ class vfense::server (
 ) {
   include apt
 
-  apt::ppa { 'ppa:wev/vfense': }
-  apt::ppa { 'ppa:rethinkdb/ppa': }
+  apt::ppa { 'ppa:wev/vfense': 
+    require => Apt::Key['vfense'],
+  }
+  apt::ppa { 'ppa:rethinkdb/ppa': 
+    require => Apt::Key['rethinkdb'],
+  }
 
   apt::key { 'rethinkdb':
     key => '11D62AD6',
@@ -21,7 +25,10 @@ class vfense::server (
   }
 
   if !defined(Package['rethinkdb']) {
-    package { 'rethinkdb': ensure => present; }
+    package { 'rethinkdb': 
+      ensure => present, 
+      require => Apt::Ppa['ppa:rethinkdb/ppa'],
+    }
   }
 
   if !defined(Package['python-dateutil']) {
@@ -32,6 +39,7 @@ class vfense::server (
     package { 'vfense-server': 
       ensure => present,
       notify => Exec["initialize vfense"],
+      require => Apt::Ppa['ppa:wev/vfense'],
     }
   }
 
@@ -40,4 +48,16 @@ class vfense::server (
     cwd => "/opt/TopPatch/",
     refreshonly => true,
   }
+
+  service { ["nginx", "redis-server", "rethinkdb"] :
+    enable => true,
+    ensure => running,
+  }
+
+  service { "vFense":
+    enable => true,
+    ensure => running,
+    require => Service["nginx"],
+  }
+
 }
