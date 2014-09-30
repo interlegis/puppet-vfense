@@ -19,27 +19,29 @@ class vfense::agent (
    
       wget::fetch { "vfense-agent":
         source => $source,
-        destination => '/tmp/vfense.tar.gz',
+        destination => '/usr/local/src/vfense.tar.gz',
         notify => Exec['unpack vfense-agent'],
       } 
 
-      file { '/tmp/vfense-agent':
+      file { '/usr/local/src/vfense-agent':
         ensure => directory,
       }
  
       exec { 'unpack vfense-agent':
-        cwd => '/tmp',
-        command => '/bin/tar -xvzf /tmp/vfense.tar.gz -C /tmp/vfense-agent --strip-components=1',
-        creates => '/tmp/vfense-agent/agent',
-        require => File['/tmp/vfense-agent'],
+        cwd => '/usr/local/src',
+        command => '/bin/tar -xvzf /usr/local/src/vfense.tar.gz -C /usr/local/src/vfense-agent --strip-components=1',
+        creates => '/usr/local/src/vfense-agent/agent',
+        require => File['/usr/local/src/vfense-agent'],
         notify => Exec['vfense-agent install'],
       }
  
       exec { 'vfense-agent install':
-        cwd => '/tmp/vfense-agent',
+        cwd => '/usr/local/src/vfense-agent',
         command => "./install -u '$user' -p '$password' -s '$servername' -c '$tag'",
         creates => '/opt/TopPatch',
+        path    => ["/usr/bin", "/usr/sbin", "/usr/local/bin"],
       }
+
       service { 'tpagentd':
         ensure => running,
         enable => true,
@@ -48,7 +50,7 @@ class vfense::agent (
       }
     }
     'absent': {
-      file { '/tmp/vfense-agent':
+      file { '/usr/local/src/vfense-agent':
         ensure => 'absent',
         force => true,
         require => Service['tpagentd'],
